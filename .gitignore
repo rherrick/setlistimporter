@@ -1,2 +1,4 @@
-out
-build
+*.iml
+/.gradle
+/build
+/out

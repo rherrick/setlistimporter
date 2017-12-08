@@ -15,7 +15,7 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-mainClassName = 'org.nrg.music.setlistmaker.SetListImporter'
+mainClassName = 'org.wurstworks.music.setlistmaker.SetListImporter'
 
 task uberjar(type: Jar, dependsOn:[':compileJava',':compileGroovy']) {
     from files(sourceSets.main.output.classesDir)

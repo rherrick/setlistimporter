@@ -1,4 +1,4 @@
-package org.nrg.music.setlistmaker
+package org.wurstworks.music.setlistmaker
 
 import java.nio.file.Paths
 
@@ -77,22 +77,38 @@ def process(def headers, def Writer writer, def File input) {
     def row = [:]
     def chords = new StringBuilder()
     def lyrics = new StringBuilder()
+    def notes = new StringBuilder()
+    def ignore = false
     input.withReader { reader ->
+        def isFirst = true
         def inChords = false
         def inLyrics = false
+        def inNotes = false
         reader.readLines().each { line ->
+            if (isFirst) {
+                isFirst = false
+                if (line.equals("IGNORE")) {
+                    ignore = true
+                }
+            }
             if (line.startsWith("Chords:")) {
                 inChords = true
+                inLyrics = inNotes = false
             } else if (line.startsWith("Lyrics:")) {
-                inChords = true
                 inLyrics = true
+                inChords = inNotes = false
+            } else if (line.startsWith("Notes:")) {
+                inNotes = true
+                inLyrics = inChords = false
             } else {
-                if (!inChords && !inLyrics) {
+                if (!inNotes && !inChords && !inLyrics) {
                     def atoms = line.split(":", 2)
                     if (atoms.length == 2) {
                         row[atoms[0]] = atoms[1].trim()
                     }
-                } else if (inChords && !inLyrics) {
+                } else if (inNotes) {
+                    notes.append(line.replaceAll("\t", "    ")).append("\\n")
+                } else if (inChords) {
                     chords.append(line.replaceAll("\t", "    ")).append("\\n")
                 } else {
                     lyrics.append(line.replaceAll("\t", "    ")).append("\\n")
@@ -100,11 +116,15 @@ def process(def headers, def Writer writer, def File input) {
             }
         }
     }
-    row["Chords"] = chords.toString() - ~/^(\\n|\\t|\s+)+/ - ~/(\\n|\\t|\s+)+$/
-    row["Lyrics"] = lyrics.toString() - ~/^(\\n|\\t|\s+)+/ - ~/(\\n|\\t|\s+)+$/
-    headers.each { def String header ->
-        def String item = row[header] ?: ""
-        writer << item << "\t"
+    if (!ignore) {
+        row["Notes"] = notes.toString() - ~/^(\\n|\\t|\s+)+/ - ~/(\\n|\\t|\s+)+$/
+        row["Chords"] = chords.toString() - ~/^(\\n|\\t|\s+)+/ - ~/(\\n|\\t|\s+)+$/
+        row["Lyrics"] = lyrics.toString()
+        // row["Lyrics"] = lyrics.toString() - ~/^(\\n|\\t|\s+)+/ - ~/(\\n|\\t|\s+)+$/
+        headers.each { def String header ->
+            def String item = row[header] ?: ""
+            writer << item << "\t"
+        }
+        writer << "\n"
     }
-    writer << "\n"
 }
